@@ -5,7 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ChatPer
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # MongoDB Setup
-client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017/")
+client = motor.motor_asyncio.AsyncIOMotorClient("mongodb+srv://botmaker9675208:botmaker9675208@cluster0.sc9mq8b.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = client["harry_potter_bot"]
 
 special_roles = ["Voldemort", "Harry Potter", "Malfoy", "Hermione"]
