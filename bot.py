@@ -12,34 +12,48 @@ special_roles = ["Voldemort", "Harry Potter", "Malfoy", "Hermione"]
 game_data = {}
 
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Allow players to register for the game."""
+    """Start the registration process with an inline button."""
     chat_id = update.message.chat_id
 
-    if chat_id in game_data and "registering" in game_data[chat_id]:
-        if update.effective_user.id in game_data[chat_id]["players"]:
-            await update.message.reply_text("✅ You are already registered!")
-        else:
-            game_data[chat_id]["players"].append(update.effective_user.id)
-            await update.message.reply_text("✅ You have been registered for the game!")
+    if chat_id not in game_data:
+        game_data[chat_id] = {"players": [], "registering": True}
+        await update.message.reply_text("📢 Registration has started! Click the button below to join.")
+    
+    button = InlineKeyboardButton("📝 Register", callback_data=f"register_{chat_id}")
+    reply_markup = InlineKeyboardMarkup([[button]])
+    
+    await update.message.reply_text("Click below to register:", reply_markup=reply_markup)
+
+    # Start auto-begin timer
+    await asyncio.sleep(120)
+    if len(game_data[chat_id]["players"]) >= 4 and game_data[chat_id]["registering"]:
+        await start_game(chat_id, context)
     else:
-        game_data[chat_id] = {"players": [update.effective_user.id], "registering": True}
-        await update.message.reply_text("📢 Registration has started! Use /register to join. The game will start in 2 minutes or with /begin.")
-        
-        # Start a timer for 2 minutes
-        await asyncio.sleep(120)
-        
-        # If at least 4 players are registered, start automatically
-        if len(game_data[chat_id]["players"]) >= 4 and game_data[chat_id]["registering"]:
-            await start_game(chat_id, context)
-        else:
-            await context.bot.send_message(chat_id, "❌ Not enough players. Registration is now closed.")
-            del game_data[chat_id]
+        await context.bot.send_message(chat_id, "❌ Not enough players. Registration is now closed.")
+        del game_data[chat_id]
+
+async def register_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle inline button registration."""
+    query = update.callback_query
+    user_id = query.from_user.id
+    chat_id = int(query.data.split("_")[1])
+
+    if chat_id not in game_data or not game_data[chat_id]["registering"]:
+        await query.answer("❌ Registration is closed!")
+        return
+    
+    if user_id in game_data[chat_id]["players"]:
+        await query.answer("✅ You are already registered!")
+    else:
+        game_data[chat_id]["players"].append(user_id)
+        await query.answer("✅ You have been registered!")
+        await context.bot.send_message(user_id, "📜 You have successfully registered for the game! Wait for it to begin.")
 
 async def begin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Manually start the game after registration."""
+    """Manually start the game."""
     chat_id = update.message.chat_id
 
-    if chat_id not in game_data or "registering" not in game_data[chat_id]:
+    if chat_id not in game_data or not game_data[chat_id]["registering"]:
         await update.message.reply_text("❌ No active registration. Start with /register first.")
         return
 
@@ -56,13 +70,11 @@ async def start_game(chat_id, context):
     random.shuffle(players)
 
     assigned_roles = {}
-
-    # Assign special roles (one of each)
     chosen_players = random.sample(players, min(len(players), len(special_roles)))
+    
     for i, player in enumerate(chosen_players):
         assigned_roles[player] = special_roles[i]
 
-    # Assign the rest as Muggles
     for player in players:
         if player not in assigned_roles:
             assigned_roles[player] = "Muggles"
@@ -132,11 +144,8 @@ async def handle_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
             player_role = game["players"].get(target_id, "Unknown")
             await context.bot.send_message(chat_id, f"💀 A player was killed last night... They were **{player_role}**.")
 
-            # Restrict the dead player from messaging
             try:
-                await context.bot.restrict_chat_member(
-                    chat_id, target_id, ChatPermissions(can_send_messages=False)
-                )
+                await context.bot.restrict_chat_member(chat_id, target_id, ChatPermissions(can_send_messages=False))
             except Exception as e:
                 print(f"Failed to restrict player {target_id}: {e}")
 
@@ -164,12 +173,9 @@ async def check_night_over(chat_id, context):
         winner = list(game["players"].values())[0]
         await context.bot.send_message(chat_id, f"🎉 The game is over! {winner} wins!")
         
-        # Restore messaging permissions for all dead players
         for dead_player in game["dead"]:
             try:
-                await context.bot.restrict_chat_member(
-                    chat_id, dead_player, ChatPermissions(can_send_messages=True)
-                )
+                await context.bot.restrict_chat_member(chat_id, dead_player, ChatPermissions(can_send_messages=True))
             except Exception as e:
                 print(f"Failed to restore permissions for {dead_player}: {e}")
 
@@ -180,6 +186,7 @@ async def check_night_over(chat_id, context):
 # Bot setup
 app = Application.builder().token("7470264967:AAHVC0iv2UwplOTEDj6-vO0Qfa1OagRNjWE").build()
 app.add_handler(CommandHandler("register", register))
+app.add_handler(CallbackQueryHandler(register_callback, pattern="^register_"))
 app.add_handler(CommandHandler("begin", begin))
 app.add_handler(CallbackQueryHandler(handle_action))
 
