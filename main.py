@@ -14,7 +14,7 @@ runs_mapping = {"Straight Drive": 2, "Cover Drive": 4, "Pull Shot": 6, "Cut Shot
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Display main menu."""
     keyboard = [
-        [InlineKeyboardButton("Add to Your Chat for Start Match", url=f"https://t.me/SlaveXGameBot?startGroup=true"")],
+        [InlineKeyboardButton("Add game to your chat ➕", url=f"https://t.me/SlaveXGameBot?startGroup=true")],
         [InlineKeyboardButton("Support 💬", url=f"https://t.me/DeadlineTech"), InlineKeyboardButton("Updates 📢", url=f"https://t.me/DeadlineTechsupport")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
