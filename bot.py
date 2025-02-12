@@ -11,17 +11,21 @@ db = client["harry_potter_bot"]
 special_roles = ["Voldemort", "Harry Potter", "Malfoy", "Hermione"]
 game_data = {}
 
+BOT_USERNAME = "slaveXgameBot"  # Replace with your bot's username
+
 async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Start the registration process with an inline button."""
+    """Start the registration process with an inline button that redirects to the bot's private chat."""
     chat_id = update.message.chat_id
 
     if chat_id not in game_data:
         game_data[chat_id] = {"players": [], "registering": True}
         await update.message.reply_text("📢 Registration has started! Click the button below to join.")
-    
-    button = InlineKeyboardButton("📝 Register", callback_data=f"register_{chat_id}")
+
+    # URL Button to redirect users to the bot's private chat
+    register_url = f"https://t.me/{BOT_USERNAME}?start=register_{chat_id}"
+    button = InlineKeyboardButton("📝 Register", url=register_url)
     reply_markup = InlineKeyboardMarkup([[button]])
-    
+
     await update.message.reply_text("Click below to register:", reply_markup=reply_markup)
 
     # Start auto-begin timer
@@ -33,21 +37,25 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE):
         del game_data[chat_id]
 
 async def register_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle inline button registration."""
-    query = update.callback_query
-    user_id = query.from_user.id
-    chat_id = int(query.data.split("_")[1])
+    """Handle user registration when they start the bot in private chat."""
+    user_id = update.message.from_user.id
+    args = context.args
+
+    if not args or not args[0].startswith("register_"):
+        await update.message.reply_text("❌ Invalid registration request.")
+        return
+
+    chat_id = int(args[0].split("_")[1])
 
     if chat_id not in game_data or not game_data[chat_id]["registering"]:
-        await query.answer("❌ Registration is closed!")
+        await update.message.reply_text("❌ Registration is closed!")
         return
-    
+
     if user_id in game_data[chat_id]["players"]:
-        await query.answer("✅ You are already registered!")
+        await update.message.reply_text("✅ You are already registered!")
     else:
         game_data[chat_id]["players"].append(user_id)
-        await query.answer("✅ You have been registered!")
-        await context.bot.send_message(user_id, "📜 You have successfully registered for the game! Wait for it to begin.")
+        await update.message.reply_text("📜 You have successfully registered for the game! Wait for it to begin.")
 
 async def begin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manually start the game."""
@@ -71,7 +79,7 @@ async def start_game(chat_id, context):
 
     assigned_roles = {}
     chosen_players = random.sample(players, min(len(players), len(special_roles)))
-    
+
     for i, player in enumerate(chosen_players):
         assigned_roles[player] = special_roles[i]
 
@@ -98,7 +106,7 @@ async def night_phase(chat_id, context):
     game = game_data.get(chat_id)
     if not game:
         return
-    
+
     for player_id, role in game["players"].items():
         if player_id not in game["alive"]:
             continue
@@ -172,7 +180,7 @@ async def check_night_over(chat_id, context):
     if len(game["alive"]) <= 1:
         winner = list(game["players"].values())[0]
         await context.bot.send_message(chat_id, f"🎉 The game is over! {winner} wins!")
-        
+
         for dead_player in game["dead"]:
             try:
                 await context.bot.restrict_chat_member(chat_id, dead_player, ChatPermissions(can_send_messages=True))
@@ -186,7 +194,7 @@ async def check_night_over(chat_id, context):
 # Bot setup
 app = Application.builder().token("7470264967:AAHVC0iv2UwplOTEDj6-vO0Qfa1OagRNjWE").build()
 app.add_handler(CommandHandler("register", register))
-app.add_handler(CallbackQueryHandler(register_callback, pattern="^register_"))
+app.add_handler(CommandHandler("start", register_callback))
 app.add_handler(CommandHandler("begin", begin))
 app.add_handler(CallbackQueryHandler(handle_action))
 
