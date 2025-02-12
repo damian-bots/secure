@@ -14,9 +14,8 @@ runs_mapping = {"Straight Drive": 2, "Cover Drive": 4, "Pull Shot": 6, "Cut Shot
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Display main menu."""
     keyboard = [
-        [InlineKeyboardButton("🏏 Start Match", callback_data="start_match")],
-        [InlineKeyboardButton("👥 Create Team", callback_data="create_team"), InlineKeyboardButton("➕ Join Team", callback_data="join_team")],
-        [InlineKeyboardButton("📊 Scoreboard", callback_data="scoreboard")]
+        [InlineKeyboardButton("Add to Your Chat for Start Match", url=f"https://t.me/SlaveXGameBot?startGroup=true"")],
+        [InlineKeyboardButton("Support 💬", url=f"https://t.me/DeadlineTech"), InlineKeyboardButton("Updates 📢", url=f"https://t.me/DeadlineTechsupport")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("🏏 Welcome to Cricket Game Bot!\nChoose an option below:", reply_markup=reply_markup)
@@ -30,7 +29,7 @@ async def create_team(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     team_name = " ".join(context.args)
     existing_team = await db.teams.find_one({"name": team_name})
-    
+
     if existing_team:
         await update.message.reply_text("⚠️ Team name already exists! Choose another name.")
         return
@@ -70,87 +69,86 @@ async def start_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ One or both teams do not exist!")
         return
 
-    await db.matches.insert_one({"team1": team1, "team2": team2, "batting": team1, "bowling": team2})
+    match_id = f"{team1}_vs_{team2}"
+    group_id = update.effective_chat.id  
+
+    await db.matches.insert_one({
+        "match_id": match_id, 
+        "team1": team1, "team2": team2, 
+        "batting": team1, "bowling": team2, 
+        "inning": 1, "wickets": 0, "overs": 0, "balls": 0, 
+        "group_id": group_id, 
+        "current_batsman_index": 0, "current_bowler_index": 0
+    })
+
     await update.message.reply_text(f"🏏 Match Started: {team1} vs {team2}\n\n{team1} will bat first!")
-    await next_batsman(team1, context)
+    await next_batsman(match_id, context)
 
-async def next_batsman(team_name, context):
+async def next_batsman(match_id, context):
     """Send batting choice to the next player."""
-    team = await db.teams.find_one({"name": team_name})
-    if not team or not team.get("players"):
-        return
-
-    batsman = team["players"][0]  # Rotate players in order
-    keyboard = [[InlineKeyboardButton(shot, callback_data=f"shot_{shot}")] for shot in shots]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await context.bot.send_message(batsman, "🏏 Your turn to bat! Choose a shot:", reply_markup=reply_markup)
-
-async def next_bowler(team_name, context):
-    """Send bowling choice to the next player."""
-    match = await db.matches.find_one({"batting": team_name})
+    match = await db.matches.find_one({"match_id": match_id})
     if not match:
         return
 
-    bowler_team = match["bowling"]
-    team = await db.teams.find_one({"name": bowler_team})
-    if not team or not team.get("players"):
+    team_name = match["batting"]
+    team = await db.teams.find_one({"name": team_name})
+
+    if match["wickets"] >= 5 or match["overs"] >= 5:
+        await switch_innings(match_id, context)
         return
 
-    bowler = team["players"][0]  # Rotate players
-    keyboard = [[InlineKeyboardButton(shot, callback_data=f"bowl_{shot}")] for shot in shots]
+    batsman_index = match["current_batsman_index"] % len(team["players"])
+    batsman = team["players"][batsman_index]
+
+    keyboard = [[InlineKeyboardButton(shot, callback_data=f"shot_{match_id}_{shot}")] for shot in shots]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await context.bot.send_message(bowler, "🎯 Your turn to bowl! Choose a delivery:", reply_markup=reply_markup)
+    await context.bot.send_message(batsman, f"🏏 Your turn to bat for {team_name}! Choose a shot:", reply_markup=reply_markup)
 
 async def handle_shot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle batting shots."""
     query = update.callback_query
-    user_id = query.from_user.id
-    user_choice = query.data.replace("shot_", "")
+    data_parts = query.data.split("_", 2)
+    match_id, user_choice = data_parts[1], data_parts[2]
 
-    user_data = await db.users.find_one({"user_id": user_id})
-    if not user_data or "team" not in user_data:
-        await query.answer("You're not in a team!")
-        return
-
-    team_name = user_data["team"]
-    match = await db.matches.find_one({"batting": team_name})
+    match = await db.matches.find_one({"match_id": match_id})
     if not match:
-        await query.answer("You're not batting!")
+        await query.answer("⚠️ Match not found!")
         return
 
-    bowler_data = await db.bowling.find_one({"team": match["bowling"]})
-    if not bowler_data:
-        await query.answer("Waiting for bowler!")
+    group_id = match["group_id"]
+    balls = match["balls"] + 1
+    overs = match["overs"]
+
+    if balls >= 6:
+        balls = 0
+        overs += 1
+
+    if overs >= 5 or match["wickets"] >= 5:
+        await switch_innings(match_id, context)
         return
 
-    bowler_choice = bowler_data["delivery"]
-    if user_choice == bowler_choice:
-        message = f"❌ OUT! You played {user_choice}, but the bowler delivered {bowler_choice}."
-    else:
-        runs = runs_mapping[user_choice]
-        await db.teams.update_one({"name": team_name}, {"$inc": {"score": runs}})
-        message = f"✅ {user_choice} for {runs} runs!"
+    runs = runs_mapping[user_choice]
+    await db.teams.update_one({"name": match["batting"]}, {"$inc": {"score": runs}})
+    await db.matches.update_one({"match_id": match_id}, {"$set": {"balls": balls, "overs": overs}})
 
-    await query.answer()
-    await context.bot.send_message(update.effective_chat.id, message)
-    await next_bowler(team_name, context)
+    message = f"🏏 {user_choice} for {runs} runs!\n\nOvers: {overs}.{balls} | Wickets: {match['wickets']}/5"
+    await context.bot.send_message(group_id, message)
 
-async def handle_bowl(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle bowling choices."""
-    query = update.callback_query
-    user_id = query.from_user.id
-    delivery = query.data.replace("bowl_", "")
+    await next_batsman(match_id, context)
 
-    user_data = await db.users.find_one({"user_id": user_id})
-    if not user_data or "team" not in user_data:
-        await query.answer("You're not in a team!")
+async def top_players(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Display top 10 players by points."""
+    top_users = await db.users.find().sort("points", -1).limit(10).to_list(length=10)
+    if not top_users:
+        await update.message.reply_text("No top players yet!")
         return
 
-    await db.bowling.update_one({"team": user_data["team"]}, {"$set": {"delivery": delivery}}, upsert=True)
-    await query.answer()
-    await query.message.reply_text(f"🎯 You bowled a {delivery}! Waiting for the batsman.")
+    leaderboard = "🏆 **Top 10 Players** 🏆\n\n"
+    for idx, user in enumerate(top_users, start=1):
+        leaderboard += f"{idx}. Player {user['user_id']} - {user.get('points', 0)} points\n"
+
+    await update.message.reply_text(leaderboard)
 
 # Bot setup
 app = Application.builder().token("7470264967:AAHVC0iv2UwplOTEDj6-vO0Qfa1OagRNjWE").build()
@@ -158,6 +156,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("create_team", create_team))
 app.add_handler(CommandHandler("join_team", join_team))
 app.add_handler(CommandHandler("start_match", start_match))
+app.add_handler(CommandHandler("top", top_players))
 app.add_handler(CallbackQueryHandler(handle_shot, pattern="^shot_"))
-app.add_handler(CallbackQueryHandler(handle_bowl, pattern="^bowl_"))
+
 app.run_polling()
