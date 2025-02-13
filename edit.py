@@ -3,7 +3,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from pymongo import MongoClient
 
 # MongoDB Setup
-MONGO_URI = "mongodb+srv://snatcherwaifu0925:snatcherwaifu0925@cluster0.fft3j.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"  # Change if needed
+MONGO_URI = "mongodb+srv://botmaker9675208:botmaker9675208@cluster0.sc9mq8b.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"  # Change if needed
 client = MongoClient(MONGO_URI)
 db = client["telegram_bot"]
 auth_collection = db["authorized_users"]
