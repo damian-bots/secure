@@ -256,7 +256,7 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = message.from_user.id
     username = message.from_user.mention_html()
 
-    if is_sudo_user(user_id) or is_free_user(chat_id, user_id):
+    if is_sudo(user_id) or is_free_user(chat_id, user_id):
         return
 
     delay_time = get_delete_delay(chat_id) * 60
