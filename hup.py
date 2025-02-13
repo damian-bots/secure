@@ -163,11 +163,11 @@ def main():
     app = Application.builder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("newgame", newgame, pass_args=True))
+    app.add_handler(CommandHandler("newgame", newgame))
     app.add_handler(CommandHandler("fight", fight))
     app.add_handler(CommandHandler("gold", gold))
     app.add_handler(CommandHandler("shop", shop))
-    app.add_handler(CommandHandler("buy", buy, pass_args=True))
+    app.add_handler(CommandHandler("buy", buy))
     app.add_handler(CommandHandler("daily", daily))
 
     print("🤖 Bot is running...")
