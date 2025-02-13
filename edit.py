@@ -64,8 +64,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     intro_text = (
-        "👋 Welcome to the Bot!\n\n"
-        "This bot deletes edited messages and supports admin authentication.\n\n"
+        "Welcome to the Guardian Bot 📢!\n\n"
+        "deletes edited messages and supports admin authentication.\n"
+        "delete all media of the group if you want to delay time use [/delay minutes]\n\n"
         "🔹 **Commands:**\n"
         "/start - Show this message\n"
         "/auth - Exempt a user from deletion (Super Admins Only)\n"
@@ -227,7 +228,7 @@ async def delete_edited_messages(update: Update, context: ContextTypes.DEFAULT_T
 # Main function
 def main():
     """Run the bot"""
-    TOKEN = "7470264967:AAHTssrBhJ2IyNOpzdCGMTlaANqf8B2Je-k"
+    TOKEN = "7990928549:AAHdWiDCZwVv32LG_Sob1gf6qd8IpZVbi9M"
 
     app = Application.builder().token(TOKEN).build()
 
