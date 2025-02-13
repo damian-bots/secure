@@ -54,7 +54,7 @@ def unauthorize_user(chat_id: int, user_id: int):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send introduction and command list with inline buttons"""
     keyboard = [
-        [InlineKeyboardButton("➕ Add me to your group", url="https://t.me/DeadlineTechGuardianBot?startgroup=true")],
+        [InlineKeyboardButton("Add to your Chat ➕", url="https://t.me/DeadlineTechGuardianBot?startgroup=true")],
         [
             InlineKeyboardButton("Support Chat 💬", url="https://t.me/deadlineTechSupport"),
             InlineKeyboardButton("Update Channel 📢", url="https://t.me/DeadlineTech")
@@ -64,14 +64,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     intro_text = (
-        "<blockquote>"
         "👋 Welcome to the Bot!\n\n"
         "This bot deletes edited messages and supports admin authentication.\n\n"
         "🔹 **Commands:**\n"
         "/start - Show this message\n"
         "/auth - Exempt a user from deletion (Super Admins Only)\n"
         "/unauth - Remove exemption (Super Admins Only)\n"
-        "<\blockquote>"
     )
     
     await update.message.reply_text(intro_text, reply_markup=reply_markup)
