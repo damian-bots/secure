@@ -249,7 +249,6 @@ async def delete_media(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     try:
         await context.bot.delete_message(job.chat_id, job.data)
-        await context.bot.send_message(job.chat_id, f"⚠️ Media has been deleted!")
     except Exception as e:
         print(f"Failed to delete message {job.data}: {e}")
 
