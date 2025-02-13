@@ -349,7 +349,7 @@ def main():
     app.add_handler(CommandHandler("unfree", unfree_user, filters=filters.ChatType.GROUPS))
     app.add_handler(CommandHandler("addsudo", add_sudo))
     app.add_handler(MessageHandler(
-        filters.PHOTO | filters.VIDEO | filters.ATTACHMENT | filters.AUDIO | filters.ANIMATION | filters.STICKER,
+        filters.PHOTO | filters.VIDEO | filters.ATTACHMENT | filters.AUDIO | filters.ANIMATION | filters.Sticker.ALL,
         handle_media
     )) 
     
