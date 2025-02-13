@@ -151,6 +151,40 @@ async def unauth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     unauthorize_user(chat_id, target_user_id)
     await message.reply_text(f"🔒 {message.reply_to_message.from_user.mention_html()} is no longer authorized.", parse_mode="HTML")
 
+# Command: Add Sudo
+async def add_sudo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Add a user to the sudo list (Owner Only)"""
+    message = update.message
+    if message.from_user.id != BOT_OWNER_ID:
+        await message.reply_text("❌ Only the bot owner can use this command.")
+        return
+
+    if not message.reply_to_message:
+        await message.reply_text("❌ Reply to a user's message to add them to sudo list.")
+        return
+
+    user_id = message.reply_to_message.from_user.id
+
+    add_sudo(user_id)
+    await message.reply_text(f"✅ {message.reply_to_message.from_user.mention_html()} is now a sudo user.", parse_mode="HTML")
+
+# Command: Remove Sudo
+async def del_sudo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Remove a user from the sudo list (Owner Only)"""
+    message = update.message
+    if message.from_user.id != BOT_OWNER_ID:
+        await message.reply_text("❌ Only the bot owner can use this command.")
+        return
+
+    if not message.reply_to_message:
+        await message.reply_text("❌ Reply to a user's message to remove them from sudo list.")
+        return
+
+    user_id = message.reply_to_message.from_user.id
+
+    remove_sudo(user_id)
+    await message.reply_text(f"🔒 {message.reply_to_message.from_user.mention_html()} is no longer a sudo user.", parse_mode="HTML")
+
 # Function to delete an edited message (executed after delay)
 async def delayed_delete(context: ContextTypes.DEFAULT_TYPE):
     """Delete the message after a 5-minute delay"""
@@ -200,10 +234,10 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("auth", auth))
     app.add_handler(CommandHandler("unauth", unauth))
-    app.add_handler(CommandHandler("addsudo", add_sudo))
-    app.add_handler(CommandHandler("delsudo", remove_sudo))
+    app.add_handler(CommandHandler("dev", add_sudo_command))
+    app.add_handler(CommandHandler("deldev", del_sudo_command))
     app.add_handler(CommandHandler("authlist", authlist))
-    app.add_handler(CommandHandler("sudolist", sudolist))
+    app.add_handler(CommandHandler("devlist", sudolist))
     app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, delete_edited_messages))
 
 
