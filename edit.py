@@ -415,7 +415,7 @@ async def delete_gmuted_messages(update: Update, context: ContextTypes.DEFAULT_T
             keyboard = [[InlineKeyboardButton("📩 Contact Support", url=f"https://t.me/deadlineTechSupport")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-            await message.reply_text(
+            await context.bot.send_message(
                 f"🚫 {user_mention}, **you are blacklisted from using this bot.**\n"
                 "❓ If you believe this is a mistake, contact support.",
                 parse_mode="Markdown",
