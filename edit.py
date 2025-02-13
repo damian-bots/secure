@@ -370,7 +370,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("auth", auth))
     app.add_handler(CommandHandler("unauth", unauth))
-    app.add_handler(CommandHandler("dev", add_sudo_command))
+    app.add_handler(CommandHandler("Edev", add_sudo_command))
     app.add_handler(CommandHandler("deldev", del_sudo_command))
     app.add_handler(CommandHandler("authlist", authlist))
     app.add_handler(CommandHandler("devlist", sudolist))
@@ -378,7 +378,7 @@ def main():
     app.add_handler(CommandHandler("delay", set_delay, filters=filters.ChatType.GROUPS))
     app.add_handler(CommandHandler("free", free_user, filters=filters.ChatType.GROUPS))
     app.add_handler(CommandHandler("unfree", unfree_user, filters=filters.ChatType.GROUPS))
-    app.add_handler(CommandHandler("dev", add_sudo))
+    app.add_handler(CommandHandler("Mdev", add_sudo))
     app.add_handler(MessageHandler(
         filters.PHOTO | filters.VIDEO | filters.ATTACHMENT | filters.AUDIO | filters.ANIMATION | filters.Sticker.ALL,
         handle_media
