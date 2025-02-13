@@ -240,9 +240,6 @@ def get_delete_delay(chat_id: int) -> int:
 def set_delete_delay(chat_id: int, delay: int):
     delay_collection.update_one({"chat_id": chat_id}, {"$set": {"delay": delay}}, upsert=True)
 
-def is_sudo_user(user_id: int) -> bool:
-    return bool(sudo_users_collection.find_one({"user_id": user_id})) or user_id == BOT_OWNER_ID
-
 def is_free_user(chat_id: int, user_id: int) -> bool:
     return bool(free_users_collection.find_one({"chat_id": chat_id, "user_id": user_id}))
 
@@ -345,21 +342,6 @@ async def is_admin(update: Update, user_id: int) -> bool:
     except Exception:
         return False  # Assume non-admin if an error occurs
 
-async def add_sudo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message
-    user_id = message.reply_to_message.from_user.id if message.reply_to_message else None
-
-    if message.from_user.id != BOT_OWNER_ID:
-        await message.reply_text("❌ Only the bot owner can add sudo users.")
-        return
-
-    if not user_id:
-        await message.reply_text("❌ Reply to a user's message to add them as a sudo user.")
-        return
-
-    sudo_users_collection.update_one({"user_id": user_id}, {"$set": {"sudo": True}}, upsert=True)
-    await message.reply_text("✅ User has been added as a sudo user in media deletion.")
-
 # Main function
 def main():
     """Run the bot"""
@@ -378,7 +360,6 @@ def main():
     app.add_handler(CommandHandler("delay", set_delay, filters=filters.ChatType.GROUPS))
     app.add_handler(CommandHandler("free", free_user, filters=filters.ChatType.GROUPS))
     app.add_handler(CommandHandler("unfree", unfree_user, filters=filters.ChatType.GROUPS))
-    app.add_handler(CommandHandler("Mdev", add_sudo))
     app.add_handler(MessageHandler(
         filters.PHOTO | filters.VIDEO | filters.ATTACHMENT | filters.AUDIO | filters.ANIMATION | filters.Sticker.ALL,
         handle_media
