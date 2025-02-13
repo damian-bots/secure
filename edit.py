@@ -58,7 +58,7 @@ def unauthorize_user(chat_id: int, user_id: int):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send introduction and command list with inline buttons"""
     keyboard = [
-        [InlineKeyboardButton("Add to your Chat ➕", url="https://t.me/DeadlineTechGuardianBot?startgroup=true")],
+        [InlineKeyboardButton("Add to your Chat ➕", url="https://t.me/GuardianBot?startgroup=true")],
         [
             InlineKeyboardButton("Support Chat 💬", url="https://t.me/deadlineTechSupport"),
             InlineKeyboardButton("Update Channel 📢", url="https://t.me/DeadlineTech")
@@ -70,11 +70,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     intro_text = (
         "Welcome to the Guardian Bot 📢!\n\n"
         "deletes edited messages and supports admin authentication.\n"
-        "delete all media of the group if you want to delay time use [/delay minutes]\n\n"
-        "🔹 **Commands:**\n"
+        "delete all media like [photos,videos,documents,gif,stickers]\n\n"
+        "**𝗖𝗼𝗺𝗺𝗮𝗻𝗱𝘀:**\n"
         "/start - Show this message\n"
-        "/auth - Exempt a user from deletion (Super Admins Only)\n"
+        "/auth - Exempt a user from deletion of edit messages (Super Admins Only)\n"
         "/unauth - Remove exemption (Super Admins Only)\n"
+        "/delay - delay the time of deletion of media (Admins Only)\n"
+        "/free - exempt a user from deletion of media (Admins Only)\n"
+        "/unfree - Remove exemption of deletion of media (Admins Only)\n"
     )
     
     await update.message.reply_text(intro_text, reply_markup=reply_markup)
