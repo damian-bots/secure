@@ -231,6 +231,7 @@ async def delete_edited_messages(update: Update, context: ContextTypes.DEFAULT_T
 
     # Schedule message deletion after 5 minutes (300 seconds)
     context.job_queue.run_once(delayed_delete, 300, chat_id=chat_id, data=edited_message.message_id)
+    context.job_queue.run_once(delayed_delete, 30, chat_id=chat_id, data=reply_msg.message_id)
 
 def get_delete_delay(chat_id: int) -> int:
     data = delay_collection.find_one({"chat_id": chat_id})
