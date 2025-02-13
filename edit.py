@@ -269,9 +269,14 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await message.reply_text(f"⚠️ {username}, your media will be deleted in {delay_time // 60} minutes!", reply_markup=reply_markup, parse_mode="HTML")
 
 async def set_delay(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Allow only admins to set media deletion delay."""
     message = update.message
     user_id = message.from_user.id
     chat_id = message.chat_id
+
+    if not await is_admin(update, user_id):
+        await message.reply_text("❌ Only admins can set the delete delay.")
+        return
 
     if len(context.args) != 1 or not context.args[0].isdigit():
         await message.reply_text("❌ Please specify a valid number of minutes. Example: /delay 60")
@@ -339,8 +344,15 @@ def main():
     app.add_handler(CommandHandler("authlist", authlist))
     app.add_handler(CommandHandler("devlist", sudolist))
     app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, delete_edited_messages))
-
-
+    app.add_handler(CommandHandler("delay", set_delay, filters=filters.ChatType.GROUPS))
+    app.add_handler(CommandHandler("free", free_user, filters=filters.ChatType.GROUPS))
+    app.add_handler(CommandHandler("unfree", unfree_user, filters=filters.ChatType.GROUPS))
+    app.add_handler(CommandHandler("addsudo", add_sudo))
+    app.add_handler(MessageHandler(
+        filters.PHOTO | filters.VIDEO | filters.DOCUMENT | filters.AUDIO | filters.ANIMATION | filters.STICKER,
+        handle_media
+    )) 
+    
     print("Bot is running...")
     app.run_polling()
 
