@@ -156,8 +156,8 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("auth", auth))
     app.add_handler(CommandHandler("unauth", unauth))
-    app.add_handler(CommandHandler("addsudo", add_sudo_command))
-    app.add_handler(CommandHandler("delsudo", del_sudo_command))
+    app.add_handler(CommandHandler("addsudo", add_sudo))
+    app.add_handler(CommandHandler("delsudo", remove_sudo))
     app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, delete_edited_messages))
 
 
