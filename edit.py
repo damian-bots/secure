@@ -407,6 +407,7 @@ async def delete_gmuted_messages(update: Update, context: ContextTypes.DEFAULT_T
     message = update.message
     user = message.from_user
     user_id = user.id
+    chat_id = message.chat_id
     user_mention = f"[@{user.username}](tg://user?id={user_id})" if user.username else f"[User](tg://user?id={user_id})"
 
     if is_gmuted(user_id):
@@ -416,8 +417,11 @@ async def delete_gmuted_messages(update: Update, context: ContextTypes.DEFAULT_T
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await context.bot.send_message(
-                f"🚫 {user_mention}, **you are blacklisted from using this bot.**\n"
-                "❓ If you believe this is a mistake, contact support.",
+               chat_id=chat_id, 
+                text=(
+                   f"🚫 {user_mention}, **you are blacklisted from using this bot.**\n"
+                "❓ If you believe this is a mistake, contact support."
+               ),
                 parse_mode="Markdown",
                 reply_markup=reply_markup
             )
