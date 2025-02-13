@@ -165,10 +165,9 @@ def main():
     app.add_handler(CommandHandler("unauth", unauth))
     app.add_handler(CommandHandler("addsudo", add_sudo_command))
     app.add_handler(CommandHandler("delsudo", del_sudo_command))
+    app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, delete_edited_messages))
 
-    # Message edit handler
-   app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, delete_edited_messages))
-
+   
     print("Bot is running...")
     app.run_polling()
 
