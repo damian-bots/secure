@@ -10,7 +10,7 @@ auth_collection = db["authorized_users"]
 sudo_collection = db["sudo_users"]
 delay_collection = db["delete_delay"]
 free_users_collection = db["free_users"]
-sudo_users_collection = db["sudo_users"]
+gmute_collection = db["gmute_list"]
 
 # Define the bot owner ID (Replace with your Telegram user ID)
 DEFAULT_DELETE_TIME = 40
@@ -342,6 +342,88 @@ async def is_admin(update: Update, user_id: int) -> bool:
     except Exception:
         return False  # Assume non-admin if an error occurs
 
+def add_gmuted_user(user_id: int):
+    """Add a user to the global mute list."""
+    gmute_collection.update_one({"user_id": user_id}, {"$set": {"user_id": user_id}}, upsert=True)
+
+def remove_gmuted_user(user_id: int):
+    """Remove a user from the global mute list."""
+    gmute_collection.delete_one({"user_id": user_id})
+
+def is_gmuted(user_id: int) -> bool:
+    """Check if a user is globally muted."""
+    return gmute_collection.find_one({"user_id": user_id}) is not None
+
+async def gmute(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Globally mute a user (only sudo users can do this)."""
+    message = update.message
+    user_id = message.from_user.id
+    
+    if not is_sudo(user_id):
+        await message.reply_text("❌ Only sudo users can use this command.")
+        return
+    
+    if not context.args:
+        await message.reply_text("❌ Please specify a user ID or mention a user.")
+        return
+    
+    try:
+        target_user_id = int(context.args[0])
+    except ValueError:
+        await message.reply_text("❌ Invalid user ID. Please provide a valid numeric ID.")
+        return
+    
+    add_gmuted_user(target_user_id)
+    await message.reply_text(f"✅ User `{target_user_id}` has been globally muted.", parse_mode="Markdown")
+
+async def ungmute(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Remove a user from the global mute list (only sudo users)."""
+    message = update.message
+    user_id = message.from_user.id
+
+    if not is_sudo(user_id):
+        await message.reply_text("❌ Only sudo users can use this command.")
+        return
+    
+    if not context.args:
+        await message.reply_text("❌ Please specify a user ID to unmute.")
+        return
+    
+    try:
+        target_user_id = int(context.args[0])
+    except ValueError:
+        await message.reply_text("❌ Invalid user ID. Please provide a valid numeric ID.")
+        return
+
+    if not is_gmuted(target_user_id):
+        await message.reply_text(f"ℹ️ User `{target_user_id}` is not globally muted.", parse_mode="Markdown")
+        return
+
+    remove_gmuted_user(target_user_id)
+    await message.reply_text(f"✅ User `{target_user_id}` has been globally unmuted.", parse_mode="Markdown")
+
+async def delete_gmuted_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Delete messages from globally muted users and send a blacklist warning with a support button."""
+    message = update.message
+    user = message.from_user
+    user_id = user.id
+    user_mention = f"[@{user.username}](tg://user?id={user_id})" if user.username else f"[User](tg://user?id={user_id})"
+
+    if is_gmuted(user_id):
+        try:
+            await message.delete()
+            keyboard = [[InlineKeyboardButton("📩 Contact Support", url=f"https://t.me/deadlineTechSupport")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await message.reply_text(
+                f"🚫 {user_mention}, **you are blacklisted from using this bot.**\n"
+                "❓ If you believe this is a mistake, contact support.",
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
+        except Exception as e:
+            print(f"Failed to delete message from {user_id}: {e}")
+
 # Main function
 def main():
     """Run the bot"""
@@ -360,6 +442,9 @@ def main():
     app.add_handler(CommandHandler("delay", set_delay, filters=filters.ChatType.GROUPS))
     app.add_handler(CommandHandler("free", free_user, filters=filters.ChatType.GROUPS))
     app.add_handler(CommandHandler("unfree", unfree_user, filters=filters.ChatType.GROUPS))
+    app.add_handler(CommandHandler("gmute", gmute, filters=filters.ChatType.GROUPS))
+    app.add_handler(CommandHandler("ungmute", ungmute, filters=filters.ChatType.GROUPS))
+    app.add_handler(MessageHandler(filters.ALL, delete_gmuted_messages))  # Delete messages from muted users
     app.add_handler(MessageHandler(
         filters.PHOTO | filters.VIDEO | filters.ATTACHMENT | filters.AUDIO | filters.ANIMATION | filters.Sticker.ALL,
         handle_media
@@ -370,3 +455,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
