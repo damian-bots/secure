@@ -263,13 +263,16 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     delay_time = get_delete_delay(chat_id) * 60
-    context.job_queue.run_once(delete_media, delay_time, chat_id=chat_id, name=username, data=message.message_id)
-
+    context.job_queue.run_once(delete_media, delay_time, chat_id=chat_id, name=f"media_{message.message_id}", data=message.message_id)
+    
     keyboard = [[InlineKeyboardButton("Support 💬", url="https://t.me/deadlineTechSupport"),
                  InlineKeyboardButton("Updates 📢", url="https://t.me/deadlineTech")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    await message.reply_text(f"⚠️ {username}, your media will be deleted in {delay_time // 60} minutes!", reply_markup=reply_markup, parse_mode="HTML")
+    reply_msg = await message.reply_text(f"⚠️ {username}, your media will be deleted in {delay_time // 60} minutes!", reply_markup=reply_markup, parse_mode="HTML")
+    
+    # Schedule deletion of the bot's reply message after 30 seconds
+    context.job_queue.run_once(delete_media, 30, chat_id=chat_id, name=f"reply_{reply_msg.message_id}", data=reply_msg.message_id)
 
 async def set_delay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Allow only admins to set media deletion delay."""
