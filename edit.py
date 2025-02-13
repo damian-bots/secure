@@ -294,28 +294,53 @@ async def set_delay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await message.reply_text(f"✅ Media deletion delay is now set to {delay} minutes.")
 
 async def free_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Allow admins to exempt a user from media deletion."""
     message = update.message
-    user_id = message.reply_to_message.from_user.id if message.reply_to_message else None
     chat_id = message.chat_id
-    
+    requester_id = message.from_user.id
+    user_id = message.reply_to_message.from_user.id if message.reply_to_message else None
+
+    # Ensure only admins can use this command
+    if not (await is_admin(update, requester_id)):
+        await message.reply_text("❌ Only admins can use this command.")
+        return
+
     if not user_id:
         await message.reply_text("❌ Reply to a user's message to free them from media deletion.")
         return
 
-    free_users_collection.update_one({"chat_id": chat_id, "user_id": user_id}, {"$set": {"exempt": True}}, upsert=True)
+    free_users_collection.update_one(
+        {"chat_id": chat_id, "user_id": user_id}, {"$set": {"exempt": True}}, upsert=True
+    )
     await message.reply_text("✅ User has been exempted from media deletion.")
 
 async def unfree_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Allow admins to remove exemption from media deletion."""
     message = update.message
-    user_id = message.reply_to_message.from_user.id if message.reply_to_message else None
     chat_id = message.chat_id
-    
+    requester_id = message.from_user.id
+    user_id = message.reply_to_message.from_user.id if message.reply_to_message else None
+
+    # Ensure only admins can use this command
+    if not (await is_admin(update, requester_id)):
+        await message.reply_text("❌ Only admins can use this command.")
+        return
+
     if not user_id:
         await message.reply_text("❌ Reply to a user's message to unfree them.")
         return
 
     free_users_collection.delete_one({"chat_id": chat_id, "user_id": user_id})
     await message.reply_text("✅ User will now have their media deleted again.")
+
+async def is_admin(update: Update, user_id: int) -> bool:
+    """Check if a user is an admin."""
+    chat = update.effective_chat
+    try:
+        member = await chat.get_member(user_id)
+        return member.status in [ChatMember.OWNER, ChatMember.ADMINISTRATOR]
+    except Exception:
+        return False  # Assume non-admin if an error occurs
 
 async def add_sudo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
