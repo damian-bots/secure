@@ -10,7 +10,7 @@ auth_collection = db["authorized_users"]
 sudo_collection = db["sudo_users"]
 
 # Define the bot owner ID (Replace with your Telegram user ID)
-BOT_OWNER_ID = 123456789  # Change this to your Telegram ID
+BOT_OWNER_ID = 6848223695  # Change this to your Telegram ID
 
 # Function to check if a user is an admin with "Add Admins" permission
 async def is_super_admin(update: Update, user_id: int) -> bool:
