@@ -3,7 +3,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from pymongo import MongoClient
 
 # MongoDB Setup
-MONGO_URI = "mongodb+srv://botmaker9675208:botmaker9675208@cluster0.sc9mq8b.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"  # Change if needed
+MONGO_URI = "mongodb+srv://fidixi3663:w7rvlxmDd5lsX9ix@cluster0.0k1an50.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"  # Change if needed
 client = MongoClient(MONGO_URI)
 db = client["telegram_bot"]
 auth_collection = db["authorized_users"]
@@ -174,7 +174,7 @@ async def add_sudo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = message.reply_to_message.from_user.id
 
     add_sudo(user_id)
-    await message.reply_text(f"✅ {message.reply_to_message.from_user.mention_html()} is now a sudo user.", parse_mode="HTML")
+    await message.reply_text(f"✅ {message.reply_to_message.from_user.mention_html()} is now a sudo user in edited deletion.", parse_mode="HTML")
 
 # Command: Remove Sudo
 async def del_sudo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -355,7 +355,7 @@ async def add_sudo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     sudo_users_collection.update_one({"user_id": user_id}, {"$set": {"sudo": True}}, upsert=True)
-    await message.reply_text("✅ User has been added as a sudo user.")
+    await message.reply_text("✅ User has been added as a sudo user in media deletion.")
 
 # Main function
 def main():
@@ -375,7 +375,7 @@ def main():
     app.add_handler(CommandHandler("delay", set_delay, filters=filters.ChatType.GROUPS))
     app.add_handler(CommandHandler("free", free_user, filters=filters.ChatType.GROUPS))
     app.add_handler(CommandHandler("unfree", unfree_user, filters=filters.ChatType.GROUPS))
-    app.add_handler(CommandHandler("addsudo", add_sudo))
+    app.add_handler(CommandHandler("dev", add_sudo))
     app.add_handler(MessageHandler(
         filters.PHOTO | filters.VIDEO | filters.ATTACHMENT | filters.AUDIO | filters.ANIMATION | filters.Sticker.ALL,
         handle_media
