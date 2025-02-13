@@ -8,8 +8,12 @@ client = MongoClient(MONGO_URI)
 db = client["telegram_bot"]
 auth_collection = db["authorized_users"]
 sudo_collection = db["sudo_users"]
+delay_collection = db["delete_delay"]
+free_users_collection = db["free_users"]
+sudo_users_collection = db["sudo_users"]
 
 # Define the bot owner ID (Replace with your Telegram user ID)
+DEFAULT_DELETE_TIME = 40
 BOT_OWNER_ID = 6848223695  # Change this to your Telegram ID
 
 # Function to check if a user is an admin with "Add Admins" permission
@@ -224,6 +228,101 @@ async def delete_edited_messages(update: Update, context: ContextTypes.DEFAULT_T
 
     # Schedule message deletion after 5 minutes (300 seconds)
     context.job_queue.run_once(delayed_delete, 300, chat_id=chat_id, data=edited_message.message_id)
+
+def get_delete_delay(chat_id: int) -> int:
+    data = delay_collection.find_one({"chat_id": chat_id})
+    return data["delay"] if data else DEFAULT_DELETE_TIME
+
+def set_delete_delay(chat_id: int, delay: int):
+    delay_collection.update_one({"chat_id": chat_id}, {"$set": {"delay": delay}}, upsert=True)
+
+def is_sudo_user(user_id: int) -> bool:
+    return bool(sudo_users_collection.find_one({"user_id": user_id})) or user_id == BOT_OWNER_ID
+
+def is_free_user(chat_id: int, user_id: int) -> bool:
+    return bool(free_users_collection.find_one({"chat_id": chat_id, "user_id": user_id}))
+
+async def delete_media(context: ContextTypes.DEFAULT_TYPE):
+    job = context.job
+    try:
+        await context.bot.delete_message(job.chat_id, job.data)
+        await context.bot.send_message(job.chat_id, f"⚠️ Media sent by {job.name} has been deleted!")
+    except Exception as e:
+        print(f"Failed to delete message {job.data}: {e}")
+
+async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    chat_id = message.chat_id
+    user_id = message.from_user.id
+    username = message.from_user.mention_html()
+
+    if is_sudo_user(user_id) or is_free_user(chat_id, user_id):
+        return
+
+    delay_time = get_delete_delay(chat_id) * 60
+    context.job_queue.run_once(delete_media, delay_time, chat_id=chat_id, name=username, data=message.message_id)
+
+    keyboard = [[InlineKeyboardButton("Support", url="https://t.me/support"),
+                 InlineKeyboardButton("Updates", url="https://t.me/updates")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await message.reply_text(f"⚠️ {username}, your media will be deleted in {delay_time // 60} minutes!", reply_markup=reply_markup, parse_mode="HTML")
+
+async def set_delay(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    user_id = message.from_user.id
+    chat_id = message.chat_id
+
+    if len(context.args) != 1 or not context.args[0].isdigit():
+        await message.reply_text("❌ Please specify a valid number of minutes. Example: /delay 60")
+        return
+
+    delay = int(context.args[0])
+    if delay < 10:
+        await message.reply_text("❌ Delay time must be at least 10 minutes.")
+        return
+
+    set_delete_delay(chat_id, delay)
+    await message.reply_text(f"✅ Media deletion delay is now set to {delay} minutes.")
+
+async def free_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    user_id = message.reply_to_message.from_user.id if message.reply_to_message else None
+    chat_id = message.chat_id
+    
+    if not user_id:
+        await message.reply_text("❌ Reply to a user's message to free them from media deletion.")
+        return
+
+    free_users_collection.update_one({"chat_id": chat_id, "user_id": user_id}, {"$set": {"exempt": True}}, upsert=True)
+    await message.reply_text("✅ User has been exempted from media deletion.")
+
+async def unfree_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    user_id = message.reply_to_message.from_user.id if message.reply_to_message else None
+    chat_id = message.chat_id
+    
+    if not user_id:
+        await message.reply_text("❌ Reply to a user's message to unfree them.")
+        return
+
+    free_users_collection.delete_one({"chat_id": chat_id, "user_id": user_id})
+    await message.reply_text("✅ User will now have their media deleted again.")
+
+async def add_sudo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.message
+    user_id = message.reply_to_message.from_user.id if message.reply_to_message else None
+
+    if message.from_user.id != BOT_OWNER_ID:
+        await message.reply_text("❌ Only the bot owner can add sudo users.")
+        return
+
+    if not user_id:
+        await message.reply_text("❌ Reply to a user's message to add them as a sudo user.")
+        return
+
+    sudo_users_collection.update_one({"user_id": user_id}, {"$set": {"sudo": True}}, upsert=True)
+    await message.reply_text("✅ User has been added as a sudo user.")
 
 # Main function
 def main():
