@@ -1,5 +1,5 @@
 from telegram import Update, ChatMember, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, JobQueue
 from pymongo import MongoClient
 
 # MongoDB Setup
@@ -151,9 +151,18 @@ async def unauth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     unauthorize_user(chat_id, target_user_id)
     await message.reply_text(f"🔒 {message.reply_to_message.from_user.mention_html()} is no longer authorized.", parse_mode="HTML")
 
-# Handler: Delete Edited Messages
+# Function to delete an edited message (executed after delay)
+async def delayed_delete(context: ContextTypes.DEFAULT_TYPE):
+    """Delete the message after a 5-minute delay"""
+    job = context.job
+    try:
+        await context.bot.delete_message(chat_id=job.chat_id, message_id=job.data)
+    except Exception as e:
+        print(f"Failed to delete message {job.data}: {e}")
+
+# Handler: Delete Edited Messages (with delay)
 async def delete_edited_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Delete edited messages and notify the user with inline buttons"""
+    """Schedule deletion of edited messages after 5 minutes"""
     edited_message = update.edited_message
     chat_id = edited_message.chat_id
     user_id = edited_message.from_user.id
@@ -170,16 +179,16 @@ async def delete_edited_messages(update: Update, context: ContextTypes.DEFAULT_T
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    try:
-        await context.bot.delete_message(chat_id=chat_id, message_id=edited_message.message_id)
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=f"⚠️ {edited_message.from_user.mention_html()}, your edited message has been deleted!",
-            parse_mode="HTML",
-            reply_markup=reply_markup
-        )
-    except Exception as e:
-        print(f"Failed to delete edited message: {e}")
+    # Inform the user about the scheduled deletion
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=f"⚠️ {edited_message.from_user.mention_html()}, your edited message will be deleted in **5 minutes**!",
+        parse_mode="HTML",
+        reply_markup=reply_markup
+    )
+
+    # Schedule message deletion after 5 minutes (300 seconds)
+    context.job_queue.run_once(delayed_delete, 300, chat_id=chat_id, data=edited_message.message_id)
 
 # Main function
 def main():
