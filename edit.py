@@ -222,7 +222,7 @@ async def delete_edited_messages(update: Update, context: ContextTypes.DEFAULT_T
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     # Inform the user about the scheduled deletion
-    await context.bot.send_message(
+    reply_msg = await context.bot.send_message(
         chat_id=chat_id,
         text=f"⚠️ {edited_message.from_user.mention_html()}, your edited message will be deleted in **5 minutes**!",
         parse_mode="HTML",
