@@ -58,7 +58,7 @@ def unauthorize_user(chat_id: int, user_id: int):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send introduction and command list with inline buttons"""
     keyboard = [
-        [InlineKeyboardButton("Add to your Chat ➕", url="https://t.me/GuardianBot?startgroup=true")],
+        [InlineKeyboardButton("Add to your Chat ➕", url="https://t.me/slaveSecurityBot?startgroup=true")],
         [
             InlineKeyboardButton("Support Chat 💬", url="https://t.me/deadlineTechSupport"),
             InlineKeyboardButton("Update Channel 📢", url="https://t.me/DeadlineTech")
@@ -68,13 +68,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     intro_text = (
-        "Welcome to the Guardian Bot 📢!\n\n"
+        "Welcome to the Security Bot 📢!\n\n"
         "deletes edited messages and supports admin authentication.\n"
-        "delete all media like [photos,videos,documents,gif,stickers]\n\n"
+        "deletes all media like [photos,videos,documents,gif,stickers]\n\n"
         "**𝗖𝗼𝗺𝗺𝗮𝗻𝗱𝘀:**\n"
         "/start - Show this message\n"
         "/auth - Exempt a user from deletion of edit messages (Super Admins Only)\n"
-        "/unauth - Remove exemption (Super Admins Only)\n"
+        "/unauth - Remove exemption of deletion edit messages (Super Admins Only)\n"
         "/delay - delay the time of deletion of media (Admins Only)\n"
         "/free - exempt a user from deletion of media (Admins Only)\n"
         "/unfree - Remove exemption of deletion of media (Admins Only)\n"
@@ -265,8 +265,8 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     delay_time = get_delete_delay(chat_id) * 60
     context.job_queue.run_once(delete_media, delay_time, chat_id=chat_id, name=username, data=message.message_id)
 
-    keyboard = [[InlineKeyboardButton("Support", url="https://t.me/support"),
-                 InlineKeyboardButton("Updates", url="https://t.me/updates")]]
+    keyboard = [[InlineKeyboardButton("Support 💬", url="https://t.me/deadlineTechSupport"),
+                 InlineKeyboardButton("Updates 📢", url="https://t.me/deadlineTech")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await message.reply_text(f"⚠️ {username}, your media will be deleted in {delay_time // 60} minutes!", reply_markup=reply_markup, parse_mode="HTML")
