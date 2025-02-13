@@ -74,6 +74,43 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(intro_text, reply_markup=reply_markup)
 
+# Command: Sudolist (Check sudo users)
+async def sudolist(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """List sudo users (Only sudo users can access)"""
+    message = update.message
+    user_id = message.from_user.id
+
+    if not is_sudo(user_id):
+        await message.reply_text("❌ Only sudo users can check the sudo list.")
+        return
+
+    sudo_users = sudo_collection.find()
+    sudo_list = [f"- `{user['user_id']}`" for user in sudo_users]
+
+    if not sudo_list:
+        await message.reply_text("❌ No sudo users found.")
+    else:
+        await message.reply_text(f"✅ **Sudo Users List:**\n\n" + "\n".join(sudo_list), parse_mode="Markdown")
+
+# Command: Authlist (Check authorized users)
+async def authlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """List authorized users in the group (Only for admins)"""
+    message = update.message
+    user_id = message.from_user.id
+    chat_id = message.chat_id
+
+    if not await is_super_admin(update, user_id):
+        await message.reply_text("❌ Only group admins can check the auth list.")
+        return
+
+    authorized_users = auth_collection.find({"chat_id": chat_id})
+    auth_list = [f"- `{user['user_id']}`" for user in authorized_users]
+
+    if not auth_list:
+        await message.reply_text("❌ No authorized users found in this group.")
+    else:
+        await message.reply_text(f"✅ **Authorized Users in this Group:**\n\n" + "\n".join(auth_list), parse_mode="Markdown")
+                                
 # Command: Auth (Exempt user from deletion)
 async def auth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Authorize a user (Only super admins can do this)"""
@@ -156,6 +193,8 @@ def main():
     app.add_handler(CommandHandler("unauth", unauth))
     app.add_handler(CommandHandler("addsudo", add_sudo))
     app.add_handler(CommandHandler("delsudo", remove_sudo))
+    app.add_handler(CommandHandler("authlist", authlist))
+    app.add_handler(CommandHandler("sudolist", sudolist))
     app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, delete_edited_messages))
 
 
