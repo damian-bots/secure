@@ -167,8 +167,8 @@ async def delete_edited_messages(update: Update, context: ContextTypes.DEFAULT_T
     chat_id = edited_message.chat_id
     user_id = edited_message.from_user.id
 
-    # If user is in sudo list, do not delete the message
-    if is_sudo(user_id):
+# If user is in sudo list or authorized list, do not delete the message
+    if is_sudo(user_id) or is_authorized(chat_id, user_id):
         return
 
     keyboard = [
