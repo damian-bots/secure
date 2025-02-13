@@ -173,7 +173,7 @@ async def add_sudo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = message.reply_to_message.from_user.id
 
-    add_sudo(user_id)
+    add_sudo(user_id, context)
     await message.reply_text(f"✅ {message.reply_to_message.from_user.mention_html()} is now a sudo user in edited deletion.", parse_mode="HTML")
 
 # Command: Remove Sudo
